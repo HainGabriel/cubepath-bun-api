@@ -27,11 +27,12 @@ export async function handleChat(req: Request): Promise<Response> {
       async start(controller) {
         try {
           if (service.isSDK) {
-            // Handle OpenRouter SDK EventStream
+            console.log(`Using SDK stream for ${service.name}`);
             for await (const chunk of stream) {
               if (isClosed) break;
               const content = chunk.choices[0]?.delta?.content;
               if (content) {
+                console.log(`Chunk from ${service.name}: ${content.substring(0, 20)}...`);
                 controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content, service: service.name })}\n\n`));
               }
               if (chunk.usage) {
@@ -42,31 +43,38 @@ export async function handleChat(req: Request): Promise<Response> {
               }
             }
           } else {
-            // Handle native Fetch ReadableStream (Cerebras, Grok)
+            console.log(`Using Native Reader for ${service.name}`);
             const reader = stream.getReader();
             const decoder = new TextDecoder();
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done || isClosed) break;
-              
-              const chunk = decoder.decode(value, { stream: true });
-              // Native fetch chunks are already SSE format usually, 
-              // but we need to pass-through or re-format.
-              // For simplicity, we re-broadcast with the service name.
-              const lines = chunk.split("\n");
-              for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                  const dataStr = line.slice(6).trim();
-                  if (dataStr === "[DONE]") continue;
-                  try {
-                    const parsed = JSON.parse(dataStr);
-                    const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.text;
-                    if (content) {
-                      controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content, service: service.name })}\n\n`));
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done || isClosed) {
+                  console.log(`Stream done for ${service.name} (done=${done}, isClosed=${isClosed})`);
+                  break;
+                }
+                
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split("\n");
+                for (const line of lines) {
+                  if (line.startsWith("data: ")) {
+                    const dataStr = line.slice(6).trim();
+                    if (dataStr === "[DONE]") continue;
+                    try {
+                      const parsed = JSON.parse(dataStr);
+                      const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.text;
+                      if (content) {
+                        console.log(`Raw Chunk from ${service.name}: ${content.substring(0, 20)}...`);
+                        controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content, service: service.name })}\n\n`));
+                      }
+                    } catch (e) {
+                      // Silently ignore partial/invalid JSON in data: field
                     }
-                  } catch (e) {}
+                  }
                 }
               }
+            } finally {
+              reader.releaseLock();
             }
           }
           

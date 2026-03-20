@@ -35,7 +35,16 @@ const services: AIService[] = [
 let currentIndex = 0;
 
 export function getNextService() {
-  const service = services[currentIndex];
-  currentIndex = (currentIndex + 1) % services.length;
+  const availableServices = services.filter(s => {
+    if (s.name === "OpenRouter") return !!process.env.OPENROUTER_API_KEY;
+    if (s.name === "Cerebras") return !!process.env.CEREBRAS_API_KEY;
+    if (s.name === "Groq") return !!process.env.GROQ_API_KEY;
+    return true;
+  });
+
+  if (availableServices.length === 0) return null;
+
+  const service = availableServices[currentIndex % availableServices.length];
+  currentIndex = (currentIndex + 1) % availableServices.length;
   return service;
 }

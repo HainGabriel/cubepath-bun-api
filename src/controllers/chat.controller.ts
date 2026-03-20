@@ -86,11 +86,13 @@ export async function handleChat(req: Request): Promise<Response> {
       }
     });
 
+    console.log(`Streaming started from ${service.name}`);
     return new Response(readable, {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        "Connection": "keep-alive"
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no"
       }
     });
 

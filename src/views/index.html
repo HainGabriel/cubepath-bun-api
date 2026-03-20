@@ -452,7 +452,10 @@
                     })
                 });
 
-                if (!response.ok) throw new Error('Error en el servidor');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Error en el servidor');
+                }
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();

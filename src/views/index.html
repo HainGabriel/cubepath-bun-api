@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Chat Premium</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Markdown and Syntax Highlighting -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         :root {
             --primary: #6366f1;
@@ -53,6 +57,7 @@
             margin-bottom: 2rem;
             background: linear-gradient(135deg, var(--primary), var(--accent));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             display: flex;
             align-items: center;
@@ -180,6 +185,36 @@
             margin-bottom: 0.5rem;
         }
 
+        /* Markdown Styles */
+        .content code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+
+        .content pre {
+            margin: 1rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+
+        .content pre code {
+            display: block;
+            padding: 1rem;
+            overflow-x: auto;
+            background: #1a1a1a !important;
+        }
+
+        .content h1, .content h2, .content h3 { margin: 1rem 0 0.5rem; }
+        .content ul, .content ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+        .content p { margin-bottom: 1rem; }
+        .content table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        .content th, .content td { border: 1px solid var(--glass-border); padding: 0.5rem; text-align: left; }
+        .content th { background: var(--glass); }
+
         /* Input Area */
         .chat-input-container {
             padding: 2rem;
@@ -288,7 +323,7 @@
         <div class="chat-messages" id="chat-messages">
             <div class="message ai">
                 <div class="ai-label">Asistente</div>
-                Hola, soy tu asistente de IA basado en OpenRouter. ¿En qué puedo ayudarte hoy?
+                <div class="content">Hola, soy tu asistente de IA basado en OpenRouter. ¿En qué puedo ayudarte hoy?</div>
             </div>
         </div>
 
@@ -306,6 +341,15 @@
     </main>
 
     <script>
+        // Configure Marked with Highlight.js
+        marked.setOptions({
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            },
+            langPrefix: 'hljs language-'
+        });
+
         const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
@@ -351,7 +395,7 @@
             chatMessages.innerHTML = `
                 <div class="message ai">
                     <div class="ai-label">Asistente</div>
-                    Hola, ¿en qué podemos trabajar hoy?
+                    <div class="content">Hola, ¿en qué podemos trabajar hoy?</div>
                 </div>
             `;
             currentChatTitle.textContent = 'Nueva Conversación';
@@ -364,9 +408,9 @@
             
             if (role === 'assistant' || role === 'ai') {
                 msgDiv.innerHTML = `<div class="ai-label">Asistente</div><div class="content"></div>`;
-                msgDiv.querySelector('.content').textContent = content;
+                msgDiv.querySelector('.content').innerHTML = marked.parse(content);
             } else {
-                msgDiv.textContent = content;
+                msgDiv.textContent = content; // User content kept as text
             }
             
             chatMessages.appendChild(msgDiv);
@@ -412,7 +456,7 @@
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                aiContent.textContent = ''; // Clear dots
+                aiContent.innerHTML = ''; // Clear dots
 
                 let fullText = '';
                 while (true) {
@@ -430,7 +474,7 @@
                                 const parsed = JSON.parse(data);
                                 if (parsed.content) {
                                     fullText += parsed.content;
-                                    aiContent.textContent = fullText;
+                                    aiContent.innerHTML = marked.parse(fullText);
                                     chatMessages.scrollTop = chatMessages.scrollHeight;
                                 }
                             } catch (e) {}

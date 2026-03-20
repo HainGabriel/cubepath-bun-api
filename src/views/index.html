@@ -462,28 +462,38 @@
                 aiContent.innerHTML = ''; // Clear dots
 
                 let fullText = '';
+                let buffer = '';
+
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
                     const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split('\n');
+                    buffer += chunk;
+                    
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || ''; // Keep the last partial line in the buffer
 
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const data = line.slice(6);
-                            if (data === '[DONE]') break;
-                            try {
-                                const parsed = JSON.parse(data);
-                                if (parsed.content) {
-                                    if (parsed.service) {
-                                        statusIndicator.textContent = `Proveedor: ${parsed.service}`;
-                                    }
-                                    fullText += parsed.content;
-                                    aiContent.innerHTML = marked.parse(fullText);
-                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                        const trimmedLine = line.trim();
+                        if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
+                        
+                        const dataStr = trimmedLine.slice(6);
+                        if (dataStr === '[DONE]') break;
+                        
+                        try {
+                            const parsed = JSON.parse(dataStr);
+                            if (parsed.content) {
+                                if (parsed.service) {
+                                    const statusIndicator = document.getElementById('status-indicator');
+                                    if (statusIndicator) statusIndicator.textContent = `Proveedor: ${parsed.service}`;
                                 }
-                            } catch (e) {}
+                                fullText += parsed.content;
+                                aiContent.innerHTML = marked.parse(fullText);
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            }
+                        } catch (e) {
+                            console.error('Error parsing SSE data:', e, dataStr);
                         }
                     }
                 }

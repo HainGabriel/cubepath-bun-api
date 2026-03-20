@@ -464,8 +464,8 @@
                 AI Chat
             </div>
             <div class="nav-btn" id="btn-show-todos" onclick="switchPage('todos')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                Gestión REST (Todos)
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                Gestión REST (Usuarios)
             </div>
         </nav>
 
@@ -511,22 +511,25 @@
             </div>
         </div>
 
-        <!-- Todos Section -->
+        <!-- Users Section -->
         <div id="section-todos" class="page-section">
             <div class="chat-header">
-                <h2 style="font-size: 1.1rem; font-weight: 600;">Probador de API REST - Todos</h2>
-                <button class="btn-add" onclick="fetchTodos()" style="padding: 0.4rem 1rem;">Refrescar</button>
+                <h2 style="font-size: 1.1rem; font-weight: 600;">Probador de API REST - Usuarios</h2>
+                <button class="btn-add" onclick="fetchUsers()" style="padding: 0.4rem 1rem;">Refrescar</button>
             </div>
             
             <div class="todo-container">
-                <div class="todo-form">
-                    <input type="text" id="todo-input-title" class="todo-input" placeholder="¿Qué necesitas hacer?">
-                    <button class="btn-add" onclick="createTodo()">Añadir</button>
+                <div class="todo-form" style="flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; gap: 0.75rem;">
+                        <input type="text" id="user-input-name" class="todo-input" placeholder="Nombre completo">
+                        <input type="email" id="user-input-email" class="todo-input" placeholder="Correo electrónico">
+                    </div>
+                    <button class="btn-add" onclick="createUser()" style="width: 100%;">Añadir Usuario</button>
                 </div>
 
-                <div class="todo-list" id="todo-list">
-                    <!-- Todos items here -->
-                    <div style="text-align: center; padding: 2rem; color: var(--text-dim);">Cargando tareas...</div>
+                <div class="todo-list" id="user-list">
+                    <!-- User items here -->
+                    <div style="text-align: center; padding: 2rem; color: var(--text-dim);">Cargando usuarios...</div>
                 </div>
             </div>
         </div>
@@ -735,34 +738,37 @@
             document.getElementById(`btn-show-${page}`).classList.add('active');
 
             if (page === 'todos') {
-                fetchTodos();
+                fetchUsers();
             }
         }
 
-        // Todo REST API Logic
-        async function fetchTodos() {
-            const listElement = document.getElementById('todo-list');
+        // User REST API Logic
+        async function fetchUsers() {
+            const listElement = document.getElementById('user-list');
             try {
-                const response = await fetch('/todos');
-                if (!response.ok) throw new Error('Error al cargar tareas');
-                const todos = await response.json();
+                const response = await fetch('/users');
+                if (!response.ok) throw new Error('Error al cargar usuarios');
+                const users = await response.json();
                 
                 listElement.innerHTML = '';
-                if (todos.length === 0) {
-                    listElement.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-dim);">No hay tareas pendientes.</div>';
+                if (users.length === 0) {
+                    listElement.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-dim);">No hay usuarios registrados.</div>';
                     return;
                 }
 
-                todos.forEach(todo => {
+                users.forEach(user => {
                     const item = document.createElement('div');
                     item.className = 'todo-item';
                     item.innerHTML = `
                         <div class="todo-info">
-                            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(${todo.id}, this.checked)">
-                            <span class="todo-title ${todo.completed ? 'completed' : ''}">${todo.title}</span>
+                            <input type="checkbox" class="todo-checkbox" ${user.active ? 'checked' : ''} onchange="toggleUser(${user.id}, this.checked)">
+                            <div>
+                                <div class="todo-title ${!user.active ? 'completed' : ''}">${user.name}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-dim);">${user.email}</div>
+                            </div>
                         </div>
                         <div class="todo-actions">
-                            <button class="btn-icon" onclick="deleteTodo(${todo.id})">
+                            <button class="btn-icon" onclick="deleteUser(${user.id})">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                             </button>
                         </div>
@@ -774,47 +780,51 @@
             }
         }
 
-        async function createTodo() {
-            const input = document.getElementById('todo-input-title');
-            const title = input.value.trim();
-            if (!title) return;
+        async function createUser() {
+            const nameInput = document.getElementById('user-input-name');
+            const emailInput = document.getElementById('user-input-email');
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+            
+            if (!name || !email) return;
 
             try {
-                const response = await fetch('/todos', {
+                const response = await fetch('/users', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, completed: false })
+                    body: JSON.stringify({ name, email, active: true })
                 });
-                if (!response.ok) throw new Error('Error al crear tarea');
-                input.value = '';
-                fetchTodos();
+                if (!response.ok) throw new Error('Error al crear usuario');
+                nameInput.value = '';
+                emailInput.value = '';
+                fetchUsers();
             } catch (err) {
                 alert(err.message);
             }
         }
 
-        async function toggleTodo(id, completed) {
+        async function toggleUser(id, active) {
             try {
-                const response = await fetch(`/todos/${id}`, {
+                const response = await fetch(`/users/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ completed })
+                    body: JSON.stringify({ active })
                 });
-                if (!response.ok) throw new Error('Error al actualizar tarea');
-                fetchTodos();
+                if (!response.ok) throw new Error('Error al actualizar usuario');
+                fetchUsers();
             } catch (err) {
                 alert(err.message);
             }
         }
 
-        async function deleteTodo(id) {
-            if (!confirm('¿Seguro que quieres eliminar esta tarea?')) return;
+        async function deleteUser(id) {
+            if (!confirm('¿Seguro que quieres eliminar este usuario?')) return;
             try {
-                const response = await fetch(`/todos/${id}`, {
+                const response = await fetch(`/users/${id}`, {
                     method: 'DELETE'
                 });
-                if (!response.ok) throw new Error('Error al eliminar tarea');
-                fetchTodos();
+                if (!response.ok) throw new Error('Error al eliminar usuario');
+                fetchUsers();
             } catch (err) {
                 alert(err.message);
             }

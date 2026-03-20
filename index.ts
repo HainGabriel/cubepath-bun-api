@@ -1,5 +1,5 @@
 import { chatRoute } from "./src/routes/chat.route";
-import { todoRoutes } from "./src/routes/todo.route";
+import { userRoutes } from "./src/routes/user.route";
 import { initDb } from "./src/db";
 
 // Initialize the database
@@ -25,9 +25,9 @@ const server = Bun.serve({
             return await chatRoute.handler(req);
         }
 
-        // Register Todo routes
-        if (url.pathname.startsWith(todoRoutes.pathPrefix)) {
-            return await todoRoutes.handler(req);
+        // Register User routes (REST API)
+        if (url.pathname.startsWith(userRoutes.pathPrefix)) {
+            return await userRoutes.handler(req);
         }
 
         return new Response("404!", { status: 404 });

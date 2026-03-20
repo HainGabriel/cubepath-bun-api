@@ -11,14 +11,15 @@ export async function initDb() {
         
         // Ensure the table exists
         await db`
-            CREATE TABLE IF NOT EXISTS todos (
+            CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
-                title TEXT NOT NULL,
-                completed BOOLEAN DEFAULT FALSE,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         `;
-        console.log("Database table 'todos' is ready.");
+        console.log("Database table 'users' is ready.");
     } catch (error) {
         console.error("Auto-initialization failed:", (error as Error).message);
         console.log("Tip: The API will try to re-initialize once the database is reachable.");

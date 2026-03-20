@@ -1,5 +1,5 @@
 import { chatRoute } from "./src/routes/chat.route";
-import { userRoutes } from "./src/routes/user.route";
+import { apiRoutes } from "./src/routes/api.route";
 import { initDb } from "./src/db";
 
 // Initialize the database
@@ -25,9 +25,9 @@ const server = Bun.serve({
             return await chatRoute.handler(req);
         }
 
-        // Register User routes (REST API)
-        if (url.pathname.startsWith(userRoutes.pathPrefix)) {
-            return await userRoutes.handler(req);
+        // Register Unified API routes (/api/users, /api/conversations, /api/messages)
+        if (url.pathname.startsWith(apiRoutes.pathPrefix)) {
+            return await apiRoutes.handler(req);
         }
 
         return new Response("404!", { status: 404 });

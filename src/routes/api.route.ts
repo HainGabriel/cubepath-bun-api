@@ -2,12 +2,23 @@ import { userController } from "../controllers/user.controller";
 import { conversationController } from "../controllers/conversation.controller";
 import { messageController } from "../controllers/message.controller";
 
+import { initDb } from "../db";
+
 export const apiRoutes = {
     pathPrefix: "/api",
     async handler(req: Request) {
         const url = new URL(req.url);
         const path = url.pathname;
-        const method = req.method;
+
+        // Health/Status endpoint
+        if (path === "/api/status") {
+            const isOk = await initDb(); // Re-check/init if needed
+            return Response.json({ 
+                status: isOk ? "online" : "offline",
+                database: isOk ? "connected" : "disconnected",
+                timestamp: new Date().toISOString()
+            }, { status: isOk ? 200 : 503 });
+        }
 
         // Dispatch based on resource
         if (path === "/api/users" || path.startsWith("/api/users/")) {

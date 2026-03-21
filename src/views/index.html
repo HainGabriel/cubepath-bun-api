@@ -262,17 +262,42 @@
         }
 
         .todo-input {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            padding: 0.75rem;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
             color: white;
+            font-size: 0.9rem;
+            transition: all 0.2s;
             outline: none;
         }
 
         .todo-input:focus {
             border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+            background: #1e293b;
+        }
+
+        /* High quality select styling to fix contrast */
+        select.todo-input {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1rem;
+            padding-right: 2.5rem;
+            color: #fff !important;
+        }
+
+        select.todo-input option {
+            background-color: #1e293b;
+            color: #fff;
+            padding: 10px;
+        }
+
+        .todo-input::placeholder {
+            color: #475569;
         }
 
         .todo-list {
@@ -632,8 +657,9 @@
                     <h2 style="font-size: 1.1rem; font-weight: 700;">⚡ Cubepath Explorer</h2>
                     <p style="font-size: 0.75rem; color: var(--text-dim);">Laboratorio para tu API REST</p>
                 </div>
-                <div id="api-status" style="font-size: 0.7rem; color: var(--get); font-weight: 600; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); border-radius: 20px;">
-                    CONECTADO
+                <div id="db-status-badge" style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; padding: 4px 10px; background: rgba(255,255,255,0.05); border-radius: 20px; display: flex; align-items: center; gap: 6px;">
+                    <span id="db-dot" style="width: 6px; height: 6px; border-radius: 50%; background: #94a3b8;"></span>
+                    DB: VERIFICANDO
                 </div>
             </div>
             
@@ -979,9 +1005,34 @@
             }
         }
 
-        // Initialize preview
+        // DB Status Monitoring
+        async function checkDbStatus() {
+            const badge = document.getElementById('db-status-badge');
+            const dot = document.getElementById('db-dot');
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                if (data.status === 'online') {
+                    badge.style.color = '#10b981';
+                    badge.style.background = 'rgba(16, 185, 129, 0.1)';
+                    dot.style.background = '#10b981';
+                    badge.lastChild.textContent = ' DB: CONECTADO';
+                } else {
+                    throw new Error();
+                }
+            } catch (e) {
+                badge.style.color = '#f43f5e';
+                badge.style.background = 'rgba(244, 63, 94, 0.1)';
+                dot.style.background = '#f43f5e';
+                badge.lastChild.textContent = ' DB: ERROR';
+            }
+        }
+
+        // Initialize preview and monitoring
         window.addEventListener('load', () => {
             if (document.getElementById('preview-url')) updatePreview();
+            checkDbStatus();
+            setInterval(checkDbStatus, 10000); // Check every 10s
         });
 
         async function copyResponse() {
@@ -1012,7 +1063,13 @@
             responseDisplay.textContent = '// Ejecutando...';
 
             let url = `/api/${resource}`;
-            if (id) url += `/${id}`;
+            if (id) {
+                url += `/${id}`;
+            } else if (['PUT', 'DELETE'].includes(method)) {
+                alert(`El método ${method} requiere un ID de recurso.`);
+                statusDisplay.textContent = 'Status: Error (ID requerido)';
+                return;
+            }
             if (query) url += `?${query}`;
 
             const startTime = performance.now();

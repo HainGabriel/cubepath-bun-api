@@ -14,15 +14,18 @@
             --primary: #6366f1;
             --primary-light: #818cf8;
             --bg-dark: #0f172a;
+            --bg: #0f172a;
             --sidebar-bg: #1e293b;
-            --chat-bg: #0f172a;
-            --msg-user: #334155;
-            --msg-ai: #1e293b;
-            --text-main: #f8fafc;
-            --text-dim: #94a3b8;
-            --accent: #10b981;
             --glass: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            
+            /* Method Colors */
+            --get: #10b981;
+            --post: #0ea5e9;
+            --put: #f59e0b;
+            --delete: #f43f5e;
         }
 
         * {
@@ -33,11 +36,32 @@
         }
 
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
+            background-color: var(--bg);
+            color: var(--text);
             height: 100vh;
             display: flex;
             overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated Blobs */
+        .blob {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            z-index: -1;
+            filter: blur(80px);
+            animation: move 20s infinite alternate;
+        }
+
+        .blob-1 { top: -100px; left: -100px; background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 70%); }
+        .blob-2 { bottom: -100px; right: -100px; background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, rgba(0,0,0,0) 70%); }
+
+        @keyframes move {
+            from { transform: translate(0, 0) scale(1); }
+            to { transform: translate(100px, 100px) scale(1.2); }
         }
 
         /* Sidebar Styles */
@@ -149,7 +173,38 @@
             background: var(--primary);
             color: white;
             border-color: var(--primary-light);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
         }
+
+        /* Method Pill Selector */
+        .method-selector {
+            display: flex;
+            background: rgba(0,0,0,0.2);
+            padding: 4px;
+            border-radius: 12px;
+            gap: 4px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .method-pill {
+            flex: 1;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            color: var(--text-dim);
+        }
+
+        .method-pill:hover { background: rgba(255,255,255,0.05); }
+
+        .method-pill[data-method="GET"].active { background: var(--get); color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); }
+        .method-pill[data-method="POST"].active { background: var(--post); color: white; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4); }
+        .method-pill[data-method="PUT"].active { background: var(--put); color: white; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4); }
+        .method-pill[data-method="DELETE"].active { background: var(--delete); color: white; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4); }
 
         /* Todo Section Styles */
         .page-section {
@@ -177,7 +232,13 @@
             margin-bottom: 2rem;
             display: flex;
             gap: 1rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            transition: border-color 0.3s;
+        }
+
+        .todo-form:hover {
+            border-color: rgba(99, 102, 241, 0.2);
         }
 
         .todo-input {
@@ -452,7 +513,8 @@
         }
     </style>
 </head>
-<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
     <aside>
         <div class="logo">
             <span>⚡</span> CUBEPATH
@@ -520,44 +582,61 @@
             
             <div class="todo-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1200px;">
                 <!-- Request Panel -->
-                <div class="todo-form" style="flex-direction: column; gap: 1rem; margin-bottom: 0;">
-                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--primary-light);">Configuración de Request</div>
+                <div class="todo-form" style="flex-direction: column; gap: 1.25rem; margin-bottom: 0; background: var(--sidebar-bg); border-radius: 20px;">
+                    <div style="font-weight: 700; font-size: 1rem; color: white; letter-spacing: -0.02em;">Configuración de Request</div>
                     
-                    <div style="display: flex; gap: 0.5rem;">
-                        <select id="explorer-method" class="todo-input" style="flex: 0 0 100px;">
-                            <option value="GET">GET</option>
-                            <option value="POST">POST</option>
-                            <option value="PUT">PUT</option>
-                            <option value="DELETE">DELETE</option>
-                        </select>
-                        <select id="explorer-resource" class="todo-input">
+                    <div class="method-selector" id="method-selector-container">
+                        <div class="method-pill active" data-method="GET" onclick="setMethod('GET')">GET</div>
+                        <div class="method-pill" data-method="POST" onclick="setMethod('POST')">POST</div>
+                        <div class="method-pill" data-method="PUT" onclick="setMethod('PUT')">PULL</div>
+                        <div class="method-pill" data-method="DELETE" onclick="setMethod('DELETE')">DELETE</div>
+                    </div>
+
+                    <input type="hidden" id="explorer-method" value="GET">
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">Recurso API</span>
+                        <select id="explorer-resource" class="todo-input" style="background: rgba(0,0,0,0.2);">
                             <option value="users">/api/users</option>
                             <option value="conversations">/api/conversations</option>
                             <option value="messages">/api/messages</option>
                         </select>
                     </div>
 
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="explorer-id" class="todo-input" placeholder="ID (opcional para GET/PUT/DELETE)">
-                        <input type="text" id="explorer-query" class="todo-input" placeholder="Query params (ex: userId=1)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <span style="font-size: 0.75rem; color: var(--text-dim);">ID Recurso:</span>
+                            <input type="text" id="explorer-id" class="todo-input" placeholder="Ej: 1">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <span style="font-size: 0.75rem; color: var(--text-dim);">Query Params:</span>
+                            <input type="text" id="explorer-query" class="todo-input" placeholder="Ej: userId=1">
+                        </div>
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <span style="font-size: 0.75rem; color: var(--text-dim);">Cuerpo de la petición (JSON):</span>
-                        <textarea id="explorer-body" class="todo-input" style="height: 150px; font-family: monospace; font-size: 0.8rem; resize: none;" placeholder='{ "name": "Ejemplo", ... }'></textarea>
+                        <span style="font-size: 0.75rem; color: var(--text-dim);">Request Body (JSON):</span>
+                        <textarea id="explorer-body" class="todo-input" style="height: 120px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; resize: none; background: rgba(0,0,0,0.2);" placeholder='{ "name": "Ejemplo" }'></textarea>
                     </div>
 
-                    <button class="btn-add" onclick="executeApiCall()">Ejecutar Petición</button>
+                    <button class="btn-add" onclick="executeApiCall()" style="padding: 1rem; font-size: 0.9rem; letter-spacing: 0.02em;">
+                        EJECUTAR PETICIÓN ⚡
+                    </button>
                 </div>
 
                 <!-- Response Panel -->
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div class="todo-form" style="flex-direction: column; gap: 0.5rem; margin-bottom: 0; background: rgba(0,0,0,0.3); flex: 1; border-color: rgba(255,255,255,0.05);">
+                    <div class="todo-form" style="flex-direction: column; gap: 0.5rem; margin-bottom: 0; background: rgba(0,0,0,0.3); flex: 1; border-color: rgba(255,255,255,0.05); position: relative;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 600; font-size: 0.9rem; color: #10b981;">Resultado de la API</span>
-                            <span id="response-status" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1);">Status: -</span>
+                            <span style="font-weight: 700; font-size: 0.9rem; color: #10b981; letter-spacing: 0.05em;">JSON RESPONSE</span>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <span id="response-status" style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.1);">STATUS: -</span>
+                                <button onclick="copyResponse()" class="btn-icon" title="Copiar JSON" style="padding: 2px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                </button>
+                            </div>
                         </div>
-                        <div id="explorer-response" style="overflow-y: auto; font-family: 'Fira Code', monospace; font-size: 0.85rem; color: #d1d5db; white-space: pre-wrap; line-height: 1.4;">Esperando ejecución...</div>
+                        <div id="explorer-response" style="overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #e2e8f0; white-space: pre; line-height: 1.5; padding: 0.5rem;">// Esperando ejecución...</div>
                     </div>
 
                     <div class="todo-form" style="padding: 1rem; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.05); height: 100px;">
@@ -773,6 +852,40 @@
 
             if (page === 'todos') {
                 // Initial setup for explorer if needed
+            }
+        }
+
+        // Method Selector Logic
+        function setMethod(method) {
+            document.getElementById('explorer-method').value = method;
+            document.querySelectorAll('.method-pill').forEach(p => {
+                p.classList.toggle('active', p.getAttribute('data-method') === method);
+            });
+
+            // Auto-fill template body if it's empty and method is POST/PUT
+            const bodyArea = document.getElementById('explorer-body');
+            if (['POST', 'PUT'].includes(method) && !bodyArea.value.trim()) {
+                const resource = document.getElementById('explorer-resource').value;
+                if (resource === 'users') {
+                    bodyArea.value = JSON.stringify({ name: "Nombre", email: "correo@ejemplo.com", active: true }, null, 2);
+                } else if (resource === 'conversations') {
+                    bodyArea.value = JSON.stringify({ user_id: 1, title: "Nueva Charla" }, null, 2);
+                } else if (resource === 'messages') {
+                    bodyArea.value = JSON.stringify({ conversation_id: 1, role: "user", content: "Hola!" }, null, 2);
+                }
+            }
+        }
+
+        async function copyResponse() {
+            const text = document.getElementById('explorer-response').textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                const status = document.getElementById('response-status');
+                const originalText = status.textContent;
+                status.textContent = 'COPIADO! ✅';
+                setTimeout(() => status.textContent = originalText, 2000);
+            } catch (err) {
+                console.error('Error al copiar:', err);
             }
         }
 

@@ -206,11 +206,31 @@
         .method-pill[data-method="PUT"].active { background: var(--put); color: white; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4); }
         .method-pill[data-method="DELETE"].active { background: var(--delete); color: white; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4); }
 
-        /* Todo Section Styles */
+        /* Todo Section Styles */        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
         .page-section {
             display: none;
             flex-direction: column;
             height: 100%;
+            overflow-y: auto;
+            width: 100%;
         }
 
         .page-section.active {
@@ -218,10 +238,10 @@
         }
 
         .todo-container {
-            max-width: 800px;
-            margin: 2rem auto;
+            max-width: 1100px;
+            margin: 0 auto;
             width: 100%;
-            padding: 0 2rem;
+            padding: 2rem;
         }
 
         .todo-form {
@@ -507,6 +527,38 @@
             50% { opacity: 1; transform: scale(1.2); }
         }
 
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        .typing-dot {
+            height: 6px;
+            width: 6px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        .msg-ai.loading {
+            background: rgba(255,255,255,0.02);
+            border: 1px dashed var(--glass-border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 1rem 1.5rem;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             aside { display: none; }
@@ -576,72 +628,93 @@
         <!-- REST Explorer Section -->
         <div id="section-todos" class="page-section">
             <div class="chat-header">
-                <h2 style="font-size: 1.1rem; font-weight: 600;">⚡ Cubepath API - Explorador Dinámico</h2>
-                <div id="api-status" style="font-size: 0.8rem; color: var(--text-dim);">Detección automática de esquemas lista</div>
+                <div>
+                    <h2 style="font-size: 1.1rem; font-weight: 700;">⚡ Cubepath Explorer</h2>
+                    <p style="font-size: 0.75rem; color: var(--text-dim);">Laboratorio para tu API REST</p>
+                </div>
+                <div id="api-status" style="font-size: 0.7rem; color: var(--get); font-weight: 600; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); border-radius: 20px;">
+                    CONECTADO
+                </div>
             </div>
             
-            <div class="todo-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1200px;">
-                <!-- Request Panel -->
-                <div class="todo-form" style="flex-direction: column; gap: 1.25rem; margin-bottom: 0; background: var(--sidebar-bg); border-radius: 20px;">
-                    <div style="font-weight: 700; font-size: 1rem; color: white; letter-spacing: -0.02em;">Configuración de Request</div>
-                    
-                    <div class="method-selector" id="method-selector-container">
-                        <div class="method-pill active" data-method="GET" onclick="setMethod('GET')">GET</div>
-                        <div class="method-pill" data-method="POST" onclick="setMethod('POST')">POST</div>
-                        <div class="method-pill" data-method="PUT" onclick="setMethod('PUT')">PULL</div>
-                        <div class="method-pill" data-method="DELETE" onclick="setMethod('DELETE')">DELETE</div>
-                    </div>
-
-                    <input type="hidden" id="explorer-method" value="GET">
-
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                        <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">Recurso API</span>
-                        <select id="explorer-resource" class="todo-input" style="background: rgba(0,0,0,0.2);">
-                            <option value="users">/api/users</option>
-                            <option value="conversations">/api/conversations</option>
-                            <option value="messages">/api/messages</option>
-                        </select>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                            <span style="font-size: 0.75rem; color: var(--text-dim);">ID Recurso:</span>
-                            <input type="text" id="explorer-id" class="todo-input" placeholder="Ej: 1">
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                            <span style="font-size: 0.75rem; color: var(--text-dim);">Query Params:</span>
-                            <input type="text" id="explorer-query" class="todo-input" placeholder="Ej: userId=1">
+            <div class="todo-container" style="display: flex; flex-direction: column; gap: 2rem;">
+                
+                <!-- URL Preview Bar -->
+                <div class="todo-form" style="padding: 1rem 1.5rem; margin-bottom: 0px; border-radius: 12px; background: rgba(0,0,0,0.4);">
+                    <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
+                        <span id="preview-method" style="background: var(--get); color: white; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.7rem; min-width: 65px; text-align: center;">GET</span>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #e2e8f0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            <span style="color: var(--text-dim);">http://localhost/</span><span id="preview-url">api/users</span>
                         </div>
                     </div>
-
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <span style="font-size: 0.75rem; color: var(--text-dim);">Request Body (JSON):</span>
-                        <textarea id="explorer-body" class="todo-input" style="height: 120px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; resize: none; background: rgba(0,0,0,0.2);" placeholder='{ "name": "Ejemplo" }'></textarea>
-                    </div>
-
-                    <button class="btn-add" onclick="executeApiCall()" style="padding: 1rem; font-size: 0.9rem; letter-spacing: 0.02em;">
-                        EJECUTAR PETICIÓN ⚡
-                    </button>
                 </div>
 
-                <!-- Response Panel -->
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div class="todo-form" style="flex-direction: column; gap: 0.5rem; margin-bottom: 0; background: rgba(0,0,0,0.3); flex: 1; border-color: rgba(255,255,255,0.05); position: relative;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; flex: 1;">
+                    <!-- Request Panel -->
+                    <div class="todo-form" style="flex-direction: column; gap: 1.5rem; margin-bottom: 0; background: var(--sidebar-bg); border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 700; font-size: 0.9rem; color: #10b981; letter-spacing: 0.05em;">JSON RESPONSE</span>
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <span id="response-status" style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.1);">STATUS: -</span>
-                                <button onclick="copyResponse()" class="btn-icon" title="Copiar JSON" style="padding: 2px;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                </button>
+                            <div style="font-weight: 700; font-size: 1rem; color: white;">Setup de Petición</div>
+                            <button onclick="prettifyJson()" class="btn-icon" title="Formatear JSON" style="font-size: 0.7rem; color: var(--primary-light); background: rgba(99, 102, 241, 0.1); padding: 4px 10px; border-radius: 6px;">{ } Prettify</button>
+                        </div>
+                        
+                        <div class="method-selector" id="method-selector-container">
+                            <div class="method-pill active" data-method="GET" onclick="setMethod('GET')">GET</div>
+                            <div class="method-pill" data-method="POST" onclick="setMethod('POST')">POST</div>
+                            <div class="method-pill" data-method="PUT" onclick="setMethod('PUT')">PUT</div>
+                            <div class="method-pill" data-method="DELETE" onclick="setMethod('DELETE')">DELETE</div>
+                        </div>
+
+                        <input type="hidden" id="explorer-method" value="GET">
+
+                        <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem;">
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">Endpoint</span>
+                                <select id="explorer-resource" class="todo-input" style="background: rgba(0,0,0,0.2);" onchange="updatePreview()">
+                                    <option value="users">/api/users</option>
+                                    <option value="conversations">/api/conversations</option>
+                                    <option value="messages">/api/messages</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">ID</span>
+                                <input type="text" id="explorer-id" class="todo-input" placeholder="Ej: 1" oninput="updatePreview()">
                             </div>
                         </div>
-                        <div id="explorer-response" style="overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #e2e8f0; white-space: pre; line-height: 1.5; padding: 0.5rem;">// Esperando ejecución...</div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">Query Params</span>
+                            <input type="text" id="explorer-query" class="todo-input" placeholder="Ej: userId=5&active=true" oninput="updatePreview()">
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+                            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">JSON Body</span>
+                            <textarea id="explorer-body" class="todo-input" style="height: 100%; min-height: 180px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; resize: none; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.05);" placeholder='{ "field": "value" }'></textarea>
+                        </div>
+
+                        <button class="btn-add" onclick="executeApiCall()" style="padding: 1rem; font-size: 0.9rem; font-weight: 800; text-transform: uppercase;">
+                            LANZAR REQUEST ⚡
+                        </button>
                     </div>
 
-                    <div class="todo-form" style="padding: 1rem; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.05); height: 100px;">
-                        <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.25rem;">Logs de Red:</div>
-                        <div id="explorer-logs" style="font-family: monospace; font-size: 0.7rem; color: #9ca3af; overflow-y: auto;"></div>
+                    <!-- Response Panel -->
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div class="todo-form" style="flex-direction: column; gap: 0.5rem; margin-bottom: 0; background: #0b0f1a; flex: 1; border-color: rgba(255,255,255,0.05); position: relative; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.75rem;">
+                                <span style="font-weight: 800; font-size: 0.85rem; color: #10b981; letter-spacing: 0.1em;">JSON OUTPUT</span>
+                                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                    <span id="response-status" style="font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 6px; background: rgba(255,255,255,0.1); font-family: 'JetBrains Mono', monospace;">---</span>
+                                    <button onclick="copyResponse()" class="btn-icon" title="Copiar" style="background: rgba(255,255,255,0.05); padding: 6px; border-radius: 8px;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="explorer-response" style="overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #8bc34a; white-space: pre; line-height: 1.6; padding: 1rem; height: 100%;scrollbar-width: thin;">// Esperando que ejecutes una petición...</div>
+                        </div>
+
+                        <div class="todo-form" style="padding: 1.25rem; background: rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.03); height: 160px; border-radius: 20px;">
+                            <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-dim); margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; letter-spacing: 0.05em;">NETWORK ACTIVITY LOG</div>
+                            <div id="explorer-logs" style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #9ca3af; overflow-y: auto; height: 100%; display: flex; flex-direction: column; gap: 4px;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -858,6 +931,13 @@
         // Method Selector Logic
         function setMethod(method) {
             document.getElementById('explorer-method').value = method;
+            const methodDisplay = document.getElementById('preview-method');
+            methodDisplay.textContent = method;
+            
+            // Update preview color
+            const colors = { GET: 'var(--get)', POST: 'var(--post)', PUT: 'var(--put)', DELETE: 'var(--delete)' };
+            methodDisplay.style.background = colors[method];
+
             document.querySelectorAll('.method-pill').forEach(p => {
                 p.classList.toggle('active', p.getAttribute('data-method') === method);
             });
@@ -874,7 +954,35 @@
                     bodyArea.value = JSON.stringify({ conversation_id: 1, role: "user", content: "Hola!" }, null, 2);
                 }
             }
+            updatePreview();
         }
+
+        function updatePreview() {
+            const resource = document.getElementById('explorer-resource').value;
+            const id = document.getElementById('explorer-id').value.trim();
+            const query = document.getElementById('explorer-query').value.trim();
+            
+            let url = `api/${resource}`;
+            if (id) url += `/${id}`;
+            if (query) url += `?${query}`;
+            
+            document.getElementById('preview-url').textContent = url;
+        }
+
+        function prettifyJson() {
+            const bodyArea = document.getElementById('explorer-body');
+            try {
+                const obj = JSON.parse(bodyArea.value);
+                bodyArea.value = JSON.stringify(obj, null, 2);
+            } catch (e) {
+                alert('JSON inválido, no se puede formatear.');
+            }
+        }
+
+        // Initialize preview
+        window.addEventListener('load', () => {
+            if (document.getElementById('preview-url')) updatePreview();
+        });
 
         async function copyResponse() {
             const text = document.getElementById('explorer-response').textContent;
